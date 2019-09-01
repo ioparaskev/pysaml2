@@ -210,15 +210,20 @@ NODE_NAME = 'urn:oasis:names:tc:SAML:2.0:assertion:Assertion'
 ENC_NODE_NAME = 'urn:oasis:names:tc:SAML:2.0:assertion:EncryptedAssertion'
 ENC_KEY_CLASS = 'EncryptedKey'
 
+
 def get_environ_delete_tmpfiles():
-    xmlsec_delete_tmpfiles = os.environ.get('PYSAML2_DELETE_XMLSEC_TMP', "True")
-    if xmlsec_delete_tmpfiles.upper() == 'FALSE':
-        xmlsec_delete_tmpfiles = False
-        logger.warn('PYSAML2_DELETE_XMLSEC_TMP set to False, '
-                    'temporary xml files will not be deleted.')
-    else:
-        xmlsec_delete_tmpfiles = True
-    return xmlsec_delete_tmpfiles
+    default = "true"
+    value = os.environ.get("PYSAML2_DELETE_TMPFILES", default)
+    result = value.lower() == default
+
+    if not result:
+        logger.warning(
+            "PYSAML2_DELETE_TMPFILES set to False, "
+            "temporary xml files will not be deleted."
+        )
+
+    return result
+
 
 def _make_vals(val, klass, seccont, klass_inst=None, prop=None, part=False,
                base64encode=False, elements_to_sign=None):
