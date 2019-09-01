@@ -336,7 +336,7 @@ def signed_instance_factory(instance, seccont, elements_to_sign=None):
         return instance
 
 
-def make_temp(content, suffix="", decode=True, delete=True):
+def make_temp(content, suffix="", decode=True):
     """
     Create a temporary file with the given content.
 
@@ -356,7 +356,7 @@ def make_temp(content, suffix="", decode=True, delete=True):
         content.encode("utf-8") if not isinstance(content, six.binary_type) else content
     )
     content_raw = base64.b64decode(content_encoded) if decode else content_encoded
-    delete_tmpfiles = delete
+    delete_tmpfiles = get_environ_delete_tmpfiles()
     ntf = NamedTemporaryFile(suffix=suffix, delete=delete_tmpfiles)
     ntf.write(content_raw)
     ntf.seek(0)
@@ -693,7 +693,6 @@ class CryptoBackendXmlSec1(CryptoBackend):
         CryptoBackend.__init__(self, **kwargs)
         assert (isinstance(xmlsec_binary, six.string_types))
         self.xmlsec = xmlsec_binary
-        self._xmlsec_delete_tmpfiles = get_environ_delete_tmpfiles()
 
         try:
             self.non_xml_crypto = RSACrypto(kwargs['rsa_key'])
@@ -825,7 +824,7 @@ class CryptoBackendXmlSec1(CryptoBackend):
         if isinstance(statement, SamlBase):
             statement = str(statement)
 
-        tmp = make_temp(statement, suffix=".xml", decode=False, delete=self._xmlsec_delete_tmpfiles)
+        tmp = make_temp(statement, suffix=".xml", decode=False)
 
         com_list = [
             self.xmlsec,
@@ -866,7 +865,7 @@ class CryptoBackendXmlSec1(CryptoBackend):
         if not isinstance(signedtext, six.binary_type):
             signedtext = signedtext.encode('utf-8')
 
-        tmp = make_temp(signedtext, suffix=".xml", decode=False, delete=self._xmlsec_delete_tmpfiles)
+        tmp = make_temp(signedtext, suffix=".xml", decode=False)
 
         com_list = [
             self.xmlsec,
@@ -895,7 +894,7 @@ class CryptoBackendXmlSec1(CryptoBackend):
             key-value parameters
         :result: Whatever xmlsec wrote to an --output temporary file
         """
-        with NamedTemporaryFile(suffix='.xml', delete=self._xmlsec_delete_tmpfiles) as ntf:
+        with NamedTemporaryFile(suffix='.xml') as ntf:
             com_list.extend(['--output', ntf.name])
             com_list += extra_args
 
@@ -1305,8 +1304,6 @@ class SecurityContext(object):
             self.template = template
 
         self.encrypt_key_type = encrypt_key_type
-        # keep certificate files to debug xmlsec invocations
-        self._xmlsec_delete_tmpfiles = get_environ_delete_tmpfiles()
 
     def correctly_signed(self, xml, must=False):
         logger.debug('verify correct signature')
@@ -1453,7 +1450,7 @@ class SecurityContext(object):
             for cert in _certs:
                 if isinstance(cert, six.string_types):
                     content = pem_format(cert)
-                    tmp = make_temp(content, suffix=".pem", decode=False, delete=self._xmlsec_delete_tmpfiles)
+                    tmp = make_temp(content, suffix=".pem", decode=False)
                     certs.append(tmp)
                 else:
                     certs.append(cert)
@@ -1463,7 +1460,7 @@ class SecurityContext(object):
         if not certs and not self.only_use_keys_in_metadata:
             logger.debug('==== Certs from instance ====')
             certs = [
-                make_temp(content=pem_format(cert), suffix=".pem", decode=False, delete=self._xmlsec_delete_tmpfiles)
+                make_temp(content=pem_format(cert), suffix=".pem", decode=False)
                 for cert in cert_from_instance(item)
             ]
         else:
