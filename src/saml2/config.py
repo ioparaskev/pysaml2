@@ -243,6 +243,7 @@ class Config(object):
         self.attribute = []
         self.attribute_profile = []
         self.requested_attribute_name_format = NAME_FORMAT_URI
+        self.delete_tmpfiles = get_environ_delete_tmpfiles()
 
     def setattr(self, context, attr, val):
         if context == "":
@@ -595,3 +596,17 @@ def config_factory(_type, config):
 
     conf.context = _type
     return conf
+
+
+def get_environ_delete_tmpfiles():
+    default = "true"
+    value = os.environ.get("PYSAML2_DELETE_TMPFILES", default)
+    result = value.lower() == default
+
+    if not result:
+        logger.warning(
+            "PYSAML2_DELETE_TMPFILES set to False, "
+            "temporary xml files will not be deleted."
+        )
+
+    return result
